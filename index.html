@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#03522D">
+<title>PIPE Library</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%2329BA74' width='32' height='32'/><text x='8' y='24' fill='white' font-size='22' font-weight='bold'>P</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--g:#29BA74;--dk:#03522D;--bl:#295E7E;--tx:#575757;--sub:#9A9A9A;--mid:#6E6F73;--soft:#D9D9D9;--bg:#F2F2F2;--w:#FFF;--mag:#E71C57;--yel:#D4DF33}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Noto Sans JP','Trebuchet MS',sans-serif;background:var(--bg);color:var(--tx);overflow-x:hidden}
+input,textarea,select,button{font-family:inherit;-webkit-appearance:none;border-radius:0}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--soft)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--soft)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--soft)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--soft)}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--soft)}
+.gd{display:grid;grid-template-columns:240px 1fr;gap:28px}
+.dn{display:flex;align-items:center;gap:2px}.mn{display:none}
+.mb{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--w);border-top:1px solid var(--soft);z-index:200;padding:4px 0;justify-content:space-around}
+.mb button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;padding:6px 4px;cursor:pointer;font-size:10px;color:var(--sub)}
+.mb button.ac{color:var(--g)}
+.hi{max-width:1120px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.main{max-width:1120px;margin:0 auto;padding:28px 24px 80px}
+@media(max-width:768px){.g4,.g3,.g5{grid-template-columns:repeat(2,1fr)}.gd{grid-template-columns:1fr;gap:16px}.dn{display:none!important}.mn{display:flex}.mb{display:flex}.hi{height:50px}.main{padding:16px 12px 100px}.hm{display:none!important}}
+@media(max-width:480px){.g4,.g3,.g2,.g5{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useMemo,useRef}=React;
+const C={G:"#29BA74",DK:"#03522D",BL:"#295E7E",TX:"#575757",SUB:"#9A9A9A",MID:"#6E6F73",SOFT:"#D9D9D9",BG:"#F2F2F2",W:"#FFF",MAG:"#E71C57",YEL:"#D4DF33"};
+const Fe="'Trebuchet MS',sans-serif";
+const CATS=["ビジネス","テクノロジー","デザイン","リーダーシップ","マーケティング","自己啓発","データ分析","戦略","イノベーション","コミュニケーション"];
+const QQ=[
+{id:1,q:"いま一番の課題は？",o:["チームマネジメント","スキルアップ","新規事業の立ち上げ","業務効率化"]},
+{id:2,q:"最近気になっているテーマは？",o:["AI・テクノロジー","組織デザイン","マーケティング戦略","データ活用"]},
+{id:3,q:"どんな読書体験を求めていますか？",o:["実践的なノウハウ","視野を広げるインスピレーション","深い専門知識","すぐ使えるフレームワーク"]},
+{id:4,q:"仕事で最も伸ばしたいスキルは？",o:["プレゼンテーション","分析・論理思考","クリエイティブ思考","リーダーシップ"]},
+{id:5,q:"チームでの自分の役割は？",o:["リーダー・意思決定者","実行・推進者","アイデア・企画者","調整・サポート者"]},
+{id:6,q:"直近のプロジェクトで困っていることは？",o:["方向性が定まらない","メンバーの巻き込み","成果の可視化","スピード感"]},
+{id:7,q:"理想の働き方は？",o:["戦略的に考える時間を増やしたい","もっとクリエイティブでありたい","データドリブンに判断したい","チームの力を最大化したい"]},
+{id:8,q:"過去に読んで良かった本のジャンルは？",o:["経営・戦略","テクノロジー・サイエンス","心理学・行動経済学","デザイン・クリエイティブ"]},
+{id:9,q:"今後のキャリアで重視することは？",o:["専門性の深化","マネジメント力","起業・新規事業","幅広い視野"]},
+{id:10,q:"読書に使える時間は？",o:["毎日30分以上","週末にまとめて","通勤時間のみ","月に1-2冊ペース"]}
+];
+
+// ============================================================
+// EXCEL I/O
+// ============================================================
+const EIO={
+  parse(wb){
+    const rs=n=>{const ws=wb.Sheets[n];return ws?XLSX.utils.sheet_to_json(ws,{defval:""}):[]};
+    const books=rs("Books").map(r=>({id:r.BookID||"",title:r["タイトル"]||"",author:r["著者"]||"",category:r["カテゴリ"]||"",tags:(r["タグ"]||"").split(",").map(t=>t.trim()).filter(Boolean),description:r["説明"]||"",pages:parseInt(r["ページ数"])||0,year:parseInt(r["出版年"])||0,coverColor:r["表紙カラー"]||C.DK,status:r["ステータス"]||"有効",isbn:r["ISBN"]||"",thumbnail:r["サムネイル"]||""})).filter(b=>b.id&&b.status==="有効");
+    const loans=rs("Loans").map(r=>({id:r.LoanID||"",bookId:r.BookID||"",bookTitle:r["タイトル"]||"",userName:r["利用者名"]||"",borrowDate:r["貸出日"]||"",dueDate:r["返却予定日"]||"",returnDate:r["返却日"]||""})).filter(l=>l.id);
+    const requests=rs("Requests").map(r=>({id:r.RequestID||"",title:r["タイトル"]||"",author:r["著者"]||"",reason:r["リクエスト理由"]||"",requestedBy:r["リクエスト者"]||"",date:r["リクエスト日"]||"",status:r["ステータス"]||"pending"})).filter(r=>r.id);
+    const activityLog=rs("ActivityLog").map(r=>({id:r.LogID||"",timestamp:r["日時"]||"",action:r["アクション"]||"",bookTitle:r["図書タイトル"]||"",userName:r["利用者"]||"",notes:r["備考"]||""})).filter(l=>l.id);
+    const reviews=rs("Reviews").map(r=>({id:r.ReviewID||"",bookId:r.BookID||"",bookTitle:r["タイトル"]||"",userName:r["レビュアー"]||"",rating:parseInt(r["評価"])||0,comment:r["コメント"]||"",date:r["日付"]||""})).filter(r=>r.id);
+    const config={};rs("Config").forEach(r=>{if(r["設定項目"])config[r["設定項目"]]=r["値"]});
+    return{books,loans,requests,activityLog,reviews,config};
+  },
+  build(data,wb){
+    const rep=(n,d)=>{if(wb&&wb.Sheets[n])delete wb.Sheets[n];const ws=XLSX.utils.json_to_sheet(d);if(wb){const idx=wb.SheetNames.indexOf(n);if(idx>=0)wb.Sheets[n]=ws;else XLSX.utils.book_append_sheet(wb,ws,n)}};
+    if(!wb)wb=XLSX.utils.book_new();
+    rep("Books",data.books.map(b=>({BookID:b.id,"タイトル":b.title,"著者":b.author,"カテゴリ":b.category,"タグ":(b.tags||[]).join(","),"説明":b.description,"ページ数":b.pages,"出版年":b.year,"表紙カラー":b.coverColor,"ISBN":b.isbn||"","サムネイル":b.thumbnail||"","ステータス":b.status||"有効"})));
+    rep("Loans",data.loans.map(l=>({LoanID:l.id,BookID:l.bookId,"タイトル":l.bookTitle||data.books.find(b=>b.id===l.bookId)?.title||"","利用者名":l.userName,"貸出日":l.borrowDate,"返却予定日":l.dueDate,"返却日":l.returnDate||"","ステータス":!l.returnDate?(du(l.dueDate)<0?"延滞":"貸出中"):"返却済"})));
+    rep("Requests",data.requests.map(r=>({RequestID:r.id,"タイトル":r.title,"著者":r.author,"リクエスト理由":r.reason,"リクエスト者":r.requestedBy,"リクエスト日":r.date,"ステータス":r.status})));
+    rep("ActivityLog",data.activityLog.map(l=>({LogID:l.id,"日時":l.timestamp,"アクション":l.action,"図書タイトル":l.bookTitle,"利用者":l.userName,"備考":l.notes||""})));
+    rep("Reviews",(data.reviews||[]).map(r=>({ReviewID:r.id,BookID:r.bookId,"タイトル":r.bookTitle,"レビュアー":r.userName,"評価":r.rating,"コメント":r.comment,"日付":r.date})));
+    return wb;
+  }
+};
+
+// ============================================================
+// GOOGLE BOOKS API
+// ============================================================
+async function searchGoogleBooks(query){
+  try{
+    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=ja`);
+    const d=await r.json();
+    return(d.items||[]).map(i=>({title:i.volumeInfo.title||"",author:(i.volumeInfo.authors||[]).join(", "),description:i.volumeInfo.description||"",pages:i.volumeInfo.pageCount||0,year:parseInt((i.volumeInfo.publishedDate||"").slice(0,4))||0,isbn:(i.volumeInfo.industryIdentifiers||[]).find(x=>x.type==="ISBN_13")?.identifier||(i.volumeInfo.industryIdentifiers||[]).find(x=>x.type==="ISBN_10")?.identifier||"",thumbnail:i.volumeInfo.imageLinks?.thumbnail||"",category:(i.volumeInfo.categories||[])[0]||"ビジネス"}));
+  }catch(e){console.error("Google Books error:",e);return[];}
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+const fmtD=d=>{if(!d)return"";if(typeof d==='string'&&d.includes('/'))return d;const dt=new Date(d);if(isNaN(dt))return String(d);return`${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,"0")}/${String(dt.getDate()).padStart(2,"0")}`};
+const fmtDT=d=>{if(!d)return"";const dt=new Date(d);if(isNaN(dt))return String(d);return`${fmtD(d)} ${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`};
+const du=d=>{if(!d)return 999;const dd=typeof d==='string'&&d.includes('/')?new Date(d.replace(/\//g,'-')):new Date(d);return Math.ceil((dd-new Date())/86400000)};
+const gid=()=>"id_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+// ============================================================
+// QR CODE COMPONENT
+// ============================================================
+function QRCode({text,size=120}){
+  const ref=useRef(null);
+  useEffect(()=>{if(ref.current){ref.current.innerHTML="";new window.QRCode(ref.current,{text,width:size,height:size,colorDark:C.DK,colorLight:"#ffffff"})}},[text,size]);
+  return React.createElement("div",{ref,style:{display:"inline-block"}});
+}
+
+// ============================================================
+// CHART COMPONENT
+// ============================================================
+function ChartCanvas({type,data:chartData,options,height=250}){
+  const ref=useRef(null);const chartRef=useRef(null);
+  useEffect(()=>{if(!ref.current)return;if(chartRef.current)chartRef.current.destroy();
+    chartRef.current=new Chart(ref.current,{type,data:chartData,options:{...options,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:"'Noto Sans JP'",size:11},color:C.TX}}}}});
+    return()=>{if(chartRef.current)chartRef.current.destroy()};
+  },[type,chartData,options]);
+  return React.createElement("canvas",{ref,style:{height,width:"100%"}});
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+function App(){
+  const[data,setData]=useState(null);
+  const[loading,setLoading]=useState(true);
+  const[view,setView]=useState("home");
+  const[isAdmin,setIsAdmin]=useState(false);
+  const[selBook,setSelBook]=useState(null);
+  const[toast,setToast]=useState(null);
+  const[dirty,setDirty]=useState(false);
+  const[userName,setUserName]=useState(localStorage.getItem("pl-user")||"");
+  const wbRef=useRef(null);
+
+  useEffect(()=>{
+    const c=localStorage.getItem("pl-cache");
+    if(c){try{setData(JSON.parse(c))}catch{}}
+    setLoading(false);
+  },[]);
+
+  const showT=useCallback((m,t="success")=>{setToast({m,t});setTimeout(()=>setToast(null),3000)},[]);
+  const nav=v=>{setView(v);setSelBook(null)};
+
+  const saveLocal=(nd)=>{setData(nd);setDirty(true);localStorage.setItem("pl-cache",JSON.stringify(nd))};
+  const addLog=(d,action,bookTitle,notes)=>({...d,activityLog:[{id:gid(),timestamp:new Date().toISOString(),action,bookTitle:bookTitle||"",userName:userName||"不明",notes:notes||""},...(d.activityLog||[])].slice(0,500)});
+
+  const handleUp=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array'});wbRef.current=wb;const d=EIO.parse(wb);setData(d);localStorage.setItem("pl-cache",JSON.stringify(d));showT("Excelを読み込みました");setDirty(false)}catch(err){showT("読み込み失敗: "+err.message,"error")}};r.readAsArrayBuffer(f)};
+  const handleDL=()=>{if(!data)return;const wb=EIO.build(data,wbRef.current);XLSX.writeFile(wb,"pipe-library-data.xlsx");setDirty(false);showT("Excelをダウンロードしました")};
+
+  // === USER SETUP ===
+  if(!userName){
+    return React.createElement(UserSetup,{onDone:name=>{setUserName(name);localStorage.setItem("pl-user",name)}});
+  }
+
+  if(loading)return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.BG}},React.createElement("div",{style:{textAlign:"center"}},React.createElement("div",{style:{width:28,height:28,background:C.G,margin:"0 auto 10px"}}),React.createElement("div",{style:{fontSize:11,color:C.SUB,letterSpacing:3}},"LOADING...")));
+
+  if(!data)return React.createElement(FileUploadScreen,{handleUp});
+
+  const aLoans=data.loans.filter(l=>!l.returnDate);
+  const oLoans=aLoans.filter(l=>du(l.dueDate)<0);
+  const myReminders=aLoans.filter(l=>l.userName===userName&&du(l.dueDate)<=3&&du(l.dueDate)>=0);
+  const isAV=view.startsWith("admin")&&view!=="admin-login";
+  const adminPw=data.config?.AdminPassword||"pipe2024";
+
+  const bnav=[{v:"home",l:"ホーム",ic:"🏠"},{v:"books",l:"図書",ic:"📖"},{v:"mypage",l:"マイ",ic:"👤"},{v:"quiz",l:"診断",ic:"🔮"},{v:"request",l:"リクエスト",ic:"📝"}];
+  const abnav=[{v:"admin",l:"ダッシュ",ic:"📊"},{v:"admin-books",l:"図書管理",ic:"📚"},{v:"admin-requests",l:"リクエスト",ic:"📝"},{v:"admin-data",l:"データ",ic:"🗄️"}];
+
+  return React.createElement("div",{style:{minHeight:"100vh",background:C.BG}},
+    toast&&React.createElement("div",{style:{position:"fixed",top:12,left:"50%",transform:"translateX(-50%)",zIndex:9999,color:"#fff",padding:"9px 24px",fontSize:13,fontWeight:500,animation:"fadeIn 0.3s",background:toast.t==="success"?C.G:toast.t==="error"?C.MAG:C.BL,maxWidth:"90vw",textAlign:"center"}},toast.m),
+
+    // Header
+    React.createElement("header",{style:{background:isAV?C.DK:C.W,borderBottom:isAV?"none":`1px solid ${C.SOFT}`,position:"sticky",top:0,zIndex:100,padding:"0 16px"}},
+      React.createElement("div",{className:"hi"},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,cursor:"pointer"},onClick:()=>nav("home")},
+          React.createElement("div",{style:{width:26,height:26,background:C.G,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},React.createElement("span",{style:{color:"#fff",fontSize:13,fontFamily:Fe,fontWeight:700}},"P")),
+          React.createElement("span",{style:{fontFamily:Fe,fontSize:14,fontWeight:700,letterSpacing:2,color:isAV?"#fff":C.TX}},"PIPE LIBRARY"),
+          isAV&&React.createElement("span",{style:{background:"rgba(255,255,255,0.15)",padding:"2px 6px",fontSize:9,color:"#fff",letterSpacing:2}},"ADMIN")
+        ),
+        // Desktop nav
+        React.createElement("div",{className:"dn"},
+          !isAV?React.createElement(React.Fragment,null,
+            React.createElement("span",{style:{fontSize:11,color:C.SUB,marginRight:8}},userName),
+            React.createElement(NB,{a:view==="home",o:()=>nav("home")},"ホーム"),
+            React.createElement(NB,{a:view==="books",o:()=>nav("books")},"図書一覧"),
+            React.createElement(NB,{a:view==="mypage",o:()=>nav("mypage")},"マイページ"),
+            React.createElement(NB,{a:view==="quiz",o:()=>nav("quiz")},"おすすめ診断"),
+            React.createElement(NB,{a:view==="request",o:()=>nav("request")},"リクエスト"),
+            React.createElement(Sep,null),
+            dirty&&React.createElement("button",{onClick:handleDL,style:{background:C.YEL,border:"none",padding:"4px 10px",fontSize:10,fontWeight:500,cursor:"pointer",marginRight:4}},"💾 保存"),
+            React.createElement("label",{style:{cursor:"pointer",fontSize:12,color:C.G,marginRight:4}},"📂",React.createElement("input",{type:"file",accept:".xlsx",onChange:handleUp,style:{display:"none"}})),
+            React.createElement(NB,{o:()=>nav(isAdmin?"admin":"admin-login"),green:true},"管理画面")
+          ):React.createElement(React.Fragment,null,
+            React.createElement(NB,{a:view==="admin",o:()=>nav("admin"),dk:true},"ダッシュボード"),
+            React.createElement(NB,{a:view==="admin-books",o:()=>nav("admin-books"),dk:true},"図書管理"),
+            React.createElement(NB,{a:view==="admin-requests",o:()=>nav("admin-requests"),dk:true},"リクエスト"),
+            React.createElement(NB,{a:view==="admin-data",o:()=>nav("admin-data"),dk:true},"蓄積データ"),
+            React.createElement(Sep,{dk:true}),
+            dirty&&React.createElement("button",{onClick:handleDL,style:{background:C.YEL,border:"none",padding:"4px 10px",fontSize:10,fontWeight:500,cursor:"pointer",marginRight:4}},"💾"),
+            React.createElement(NB,{o:()=>nav("home"),dk:true},"利用画面"),
+            React.createElement(NB,{o:()=>{setIsAdmin(false);nav("home")},dk:true},"ログアウト")
+          )
+        ),
+        // Mobile
+        React.createElement("div",{className:"mn",style:{alignItems:"center",gap:8}},
+          React.createElement("span",{style:{fontSize:10,color:isAV?"#fff":C.SUB}},userName),
+          dirty&&React.createElement("button",{onClick:handleDL,style:{background:C.YEL,border:"none",padding:"4px 8px",fontSize:9,cursor:"pointer"}},"💾"),
+          React.createElement("label",{style:{cursor:"pointer",fontSize:11,color:isAV?"#fff":C.G}},"📂",React.createElement("input",{type:"file",accept:".xlsx",onChange:handleUp,style:{display:"none"}})),
+          !isAV?React.createElement("button",{onClick:()=>nav(isAdmin?"admin":"admin-login"),style:{background:"none",border:"none",fontSize:10,color:C.G,cursor:"pointer"}},"管理"):React.createElement("button",{onClick:()=>{setIsAdmin(false);nav("home")},style:{background:"none",border:"none",fontSize:10,color:"#fff",cursor:"pointer"}},"利用画面")
+        )
+      )
+    ),
+
+    // Reminders bar
+    (myReminders.length>0&&!isAV)&&React.createElement("div",{style:{background:"#FFF8E1",borderBottom:`1px solid ${C.YEL}`,padding:"8px 16px",textAlign:"center",fontSize:12,color:"#7B6B00"}},
+      "⏰ 返却期限が近い本があります: ",myReminders.map(l=>`「${l.bookTitle||data.books.find(b=>b.id===l.bookId)?.title}」(残り${du(l.dueDate)}日)`).join("、")
+    ),
+
+    // Main
+    React.createElement("main",{className:"main"},
+      view==="home"&&React.createElement(Home,{data,nav,aLoans,oLoans,userName}),
+      view==="books"&&!selBook&&React.createElement(Books,{data,sel:setSelBook}),
+      view==="books"&&selBook&&React.createElement(Detail,{b:selBook,data,upd:saveLocal,toast:showT,back:()=>setSelBook(null),addLog,userName}),
+      view==="mypage"&&React.createElement(MyPage,{data,upd:saveLocal,toast:showT,nav,addLog,userName}),
+      view==="quiz"&&React.createElement(Quiz,{data,upd:saveLocal,nav,addLog,userName}),
+      view==="request"&&React.createElement(Req,{data,upd:saveLocal,toast:showT,addLog,userName}),
+      view==="admin-login"&&React.createElement(Login,{pw:adminPw,ok:()=>{setIsAdmin(true);nav("admin");showT("ログインしました")},toast:showT}),
+      isAV&&isAdmin&&view==="admin"&&React.createElement(ADash,{data}),
+      isAV&&isAdmin&&view==="admin-books"&&React.createElement(ABooks,{data,upd:saveLocal,toast:showT,addLog,userName}),
+      isAV&&isAdmin&&view==="admin-requests"&&React.createElement(AReqs,{data,upd:saveLocal,toast:showT,addLog,userName}),
+      isAV&&isAdmin&&view==="admin-data"&&React.createElement(AData,{data,handleDL}),
+      isAV&&!isAdmin&&React.createElement(Login,{pw:adminPw,ok:()=>{setIsAdmin(true);showT("ログインしました")},toast:showT})
+    ),
+
+    // Bottom nav (mobile)
+    React.createElement("div",{className:"mb"},
+      (isAV?abnav:bnav).map(b=>React.createElement("button",{key:b.v,className:view===b.v?"ac":"",onClick:()=>nav(b.v)},React.createElement("span",{style:{fontSize:18}},b.ic),React.createElement("span",null,b.l)))
+    ),
+
+    // Status bar
+    React.createElement("div",{className:"hm",style:{position:"fixed",bottom:0,left:0,right:0,background:C.W,borderTop:`1px solid ${C.SOFT}`,padding:"5px 16px",display:"flex",justifyContent:"space-between",fontSize:10,color:C.SUB,zIndex:90}},
+      React.createElement("span",null,dirty?React.createElement("span",{style:{color:C.MAG}},"● 未保存 — 💾ボタンでExcelに保存"):React.createElement("span",{style:{color:C.G}},"✓ 保存済み")),
+      React.createElement("span",null,`蔵書${data.books.length} / 貸出${aLoans.length} / 延滞${oLoans.length}`)
+    )
+  );
+}
+
+// ============================================================
+// USER SETUP
+// ============================================================
+function UserSetup({onDone}){
+  const[name,setName]=useState("");
+  return React.createElement("div",{style:{minHeight:"100vh",background:C.BG,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+    React.createElement("div",{style:{background:C.W,padding:"48px 32px",maxWidth:420,width:"100%",textAlign:"center",border:`1px solid ${C.SOFT}`}},
+      React.createElement("div",{style:{width:48,height:48,background:C.G,margin:"0 auto 16px",display:"flex",alignItems:"center",justifyContent:"center"}},React.createElement("span",{style:{color:"#fff",fontSize:22,fontFamily:Fe,fontWeight:700}},"P")),
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:3,marginBottom:4}},"PIPE LIBRARY"),
+      React.createElement("h1",{style:{fontSize:22,color:C.TX,fontWeight:400,marginBottom:6}},"ようこそ"),
+      React.createElement("p",{style:{fontSize:13,color:C.SUB,marginBottom:28,lineHeight:1.6}},"あなたの名前を入力してください。","貸出・リクエスト時に記録されます。"),
+      React.createElement("input",{value:name,onChange:e=>setName(e.target.value),onKeyDown:e=>e.key==="Enter"&&name.trim()&&onDone(name.trim()),placeholder:"例: 田中太郎",style:{width:"100%",padding:"12px 16px",border:`1px solid ${C.SOFT}`,fontSize:15,outline:"none",background:C.BG,textAlign:"center",marginBottom:16}}),
+      React.createElement(Bt,{v:"primary",size:"lg",onClick:()=>name.trim()&&onDone(name.trim()),disabled:!name.trim(),style:{width:"100%"}},"はじめる"),
+      React.createElement("p",{style:{fontSize:11,color:C.SOFT,marginTop:20}},"※ 後からプロフィールで変更可能")
+    )
+  );
+}
+
+function FileUploadScreen({handleUp}){
+  return React.createElement("div",{style:{minHeight:"100vh",background:C.BG,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+    React.createElement("div",{style:{background:C.W,padding:"48px 32px",maxWidth:420,textAlign:"center",border:`1px solid ${C.SOFT}`}},
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:3,marginBottom:12}},"PIPE LIBRARY"),
+      React.createElement("p",{style:{fontSize:15,color:C.TX,marginBottom:20}},"Excelファイルを読み込んでください"),
+      React.createElement("label",{style:{display:"inline-block",padding:"12px 28px",background:C.G,color:"#fff",cursor:"pointer",fontSize:14,fontWeight:500}},"pipe-library-data.xlsx を選択",React.createElement("input",{type:"file",accept:".xlsx",onChange:handleUp,style:{display:"none"}})),
+      React.createElement("p",{style:{fontSize:11,color:C.SUB,marginTop:16,lineHeight:1.6}},"初回のみ必要です。","以降はブラウザに自動キャッシュされます。")
+    )
+  );
+}
+
+// ============================================================
+// SHARED COMPONENTS
+// ============================================================
+function NB({children,a,o,green,dk}){
+  const c=dk?{color:a?"#fff":"rgba(255,255,255,0.7)",borderBottom:a?"2px solid #fff":"2px solid transparent"}:green?{color:C.G}:{color:a?C.TX:C.SUB,borderBottom:a?`2px solid ${C.G}`:"2px solid transparent"};
+  return React.createElement("button",{onClick:o,style:{background:"transparent",border:"none",padding:"16px 10px",cursor:"pointer",fontSize:12,fontWeight:a?500:400,letterSpacing:0.3,...c}},children);
+}
+function Sep({dk}){return React.createElement("div",{style:{width:1,height:18,background:dk?"rgba(255,255,255,0.2)":C.SOFT,margin:"0 6px"}})}
+function Tl({children,sub}){return React.createElement("div",{style:{marginBottom:22}},React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:3,marginBottom:4}},children),sub&&React.createElement("div",{style:{fontSize:20,color:C.TX,fontWeight:400}},sub))}
+function Cd({children,style,onClick,hover}){const[h,setH]=useState(false);return React.createElement("div",{onClick,onMouseEnter:()=>setH(true),onMouseLeave:()=>setH(false),style:{background:C.W,padding:18,border:`1px solid ${C.SOFT}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",borderBottom:h&&hover?`2px solid ${C.G}`:`1px solid ${C.SOFT}`,...style}},children)}
+function Tg({children,color=C.G}){return React.createElement("span",{style:{display:"inline-block",padding:"2px 7px",fontSize:10,fontWeight:500,color,border:`1px solid ${color}`,letterSpacing:0.3}},children)}
+function Bt({children,onClick,v="primary",size="md",disabled,style:s}){
+  const vs={primary:{background:C.G,color:"#fff",border:`1px solid ${C.G}`},secondary:{background:"transparent",color:C.TX,border:`1px solid ${C.SOFT}`},danger:{background:C.MAG,color:"#fff",border:`1px solid ${C.MAG}`},dark:{background:C.DK,color:"#fff",border:`1px solid ${C.DK}`}};
+  const ss={sm:{padding:"5px 12px",fontSize:11},md:{padding:"9px 20px",fontSize:13},lg:{padding:"12px 28px",fontSize:14}};
+  return React.createElement("button",{onClick,disabled,style:{...vs[v],...ss[size],fontWeight:500,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,letterSpacing:0.3,minHeight:44,...s}},children);
+}
+function BC({book,size=90}){
+  if(book.thumbnail)return React.createElement("img",{src:book.thumbnail,style:{width:size*0.68,height:size,objectFit:"cover",flexShrink:0},alt:book.title});
+  return React.createElement("div",{style:{width:size*0.68,height:size,background:book.coverColor||C.MID,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:size*0.06,color:"#fff",position:"relative",flexShrink:0}},
+    React.createElement("div",{style:{position:"absolute",left:0,top:0,bottom:0,width:2,background:"rgba(255,255,255,0.15)"}}),
+    React.createElement("div",{style:{fontSize:Math.max(size*0.085,9),fontWeight:500,textAlign:"center",lineHeight:1.3}},book.title)
+  );
+}
+
+// Stars display / input component
+function Stars({rating=0,onRate,size=16}){
+  return React.createElement("div",{style:{display:"flex",gap:2,alignItems:"center"}},
+    [1,2,3,4,5].map(n=>React.createElement("span",{key:n,onClick:onRate?()=>onRate(n):undefined,style:{cursor:onRate?"pointer":"default",fontSize:size,color:n<=rating?"#F59E0B":C.SOFT,transition:"color 0.15s",lineHeight:1}},"\u2605"))
+  );
+}
+function avgRating(reviews,bookId){const brs=(reviews||[]).filter(r=>r.bookId===bookId);if(!brs.length)return 0;return Math.round(brs.reduce((s,r)=>s+r.rating,0)/brs.length*10)/10}
+
+// ============================================================
+// LOGIN
+// ============================================================
+function Login({pw,ok,toast}){
+  const[v,setV]=useState("");const[err,setErr]=useState(false);const ref=useRef(null);
+  useEffect(()=>{ref.current?.focus()},[]);
+  const sub=()=>{if(v===pw)ok();else{setErr(true);toast("パスワードが正しくありません","error");setTimeout(()=>setErr(false),500);setV("")}};
+  return React.createElement("div",{style:{animation:"slideUp 0.3s",display:"flex",justifyContent:"center",paddingTop:60}},
+    React.createElement(Cd,{style:{width:"100%",maxWidth:380,textAlign:"center",padding:"40px 28px",animation:err?"shake 0.4s":"none"}},
+      React.createElement("div",{style:{width:40,height:40,background:C.G,margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"center"}},React.createElement("span",{style:{color:"#fff",fontSize:16}},"🔒")),
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:3,marginBottom:20}},"ADMIN ACCESS"),
+      React.createElement("input",{ref,type:"password",value:v,onChange:e=>setV(e.target.value),onKeyDown:e=>e.key==="Enter"&&sub(),placeholder:"パスワード",style:{width:"100%",padding:"12px",border:`1px solid ${err?C.MAG:C.SOFT}`,fontSize:14,outline:"none",background:C.BG,textAlign:"center",letterSpacing:4,marginBottom:14}}),
+      React.createElement(Bt,{v:"primary",size:"lg",onClick:sub,style:{width:"100%"}},"ログイン")
+    )
+  );
+}
+
+// ============================================================
+// HOME
+// ============================================================
+function Home({data,nav,aLoans,oLoans,userName}){
+  const pR=data.requests.filter(r=>r.status==="pending");
+  const myLoans=aLoans.filter(l=>l.userName===userName);
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement("div",{style:{marginBottom:24}},
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:3,marginBottom:4}},"PIPE LIBRARY"),
+      React.createElement("h1",{style:{fontSize:22,color:C.TX,fontWeight:400}},`${userName}さん、ようこそ`)
+    ),
+    React.createElement("div",{className:"g4",style:{marginBottom:20}},
+      [{l:"蔵書数",v:data.books.length,c:C.G},{l:"貸出中",v:aLoans.length,c:C.BL},{l:"あなたの貸出",v:myLoans.length,c:C.DK},{l:"延滞",v:oLoans.length,c:oLoans.length?C.MAG:C.SUB}].map((s,i)=>
+        React.createElement("div",{key:i,style:{background:C.W,padding:"14px 8px",textAlign:"center"}},
+          React.createElement("div",{style:{fontSize:28,fontWeight:700,color:s.c,fontFamily:Fe}},s.v),
+          React.createElement("div",{style:{fontSize:11,color:C.SUB,marginTop:2}},s.l)
+        )
+      )
+    ),
+    oLoans.length>0&&React.createElement(Cd,{style:{borderLeft:`3px solid ${C.MAG}`,marginBottom:16,padding:12}},
+      React.createElement("span",{style:{color:C.MAG,fontSize:12,fontWeight:500}},"⚠ 返却期限超過: "),
+      React.createElement("span",{style:{fontSize:12,color:C.SUB}},oLoans.map(l=>`${l.userName}「${l.bookTitle||data.books.find(b=>b.id===l.bookId)?.title}」`).join("、"))
+    ),
+    React.createElement("div",{className:"g3",style:{marginBottom:24}},
+      [{t:"図書を探す",d:"蔵書一覧から借りる",a:()=>nav("books")},{t:"おすすめ診断",d:"10問の質問でおすすめをレコメンド",a:()=>nav("quiz")},{t:"リクエスト",d:"読みたい本をリクエスト",a:()=>nav("request")}].map((x,i)=>
+        React.createElement(Cd,{key:i,hover:true,onClick:x.a,style:{padding:"20px 16px"}},
+          React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginBottom:6}},`0${i+1}`),
+          React.createElement("div",{style:{fontSize:14,color:C.TX,fontWeight:500,marginBottom:4}},x.t),
+          React.createElement("div",{style:{fontSize:12,color:C.SUB,lineHeight:1.5}},x.d)
+        )
+      )
+    )
+  );
+}
+
+// ============================================================
+// BOOKS
+// ============================================================
+function Books({data,sel}){
+  const[s,setS]=useState("");const[cf,setCf]=useState("all");
+  const fl=useMemo(()=>data.books.filter(b=>{const ms=!s||b.title.includes(s)||b.author.includes(s)||(b.tags||[]).some(t=>t.includes(s));return ms&&(cf==="all"||b.category===cf)}),[data,s,cf]);
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement(Tl,{sub:`全${data.books.length}冊`},"BOOK CATALOG"),
+    React.createElement(Cd,{style:{marginBottom:16,padding:12}},
+      React.createElement("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
+        React.createElement("input",{value:s,onChange:e=>setS(e.target.value),placeholder:"タイトル・著者・タグ検索",style:{flex:1,minWidth:120,padding:"8px 10px",border:`1px solid ${C.SOFT}`,fontSize:13,outline:"none",background:C.BG}}),
+        React.createElement("select",{value:cf,onChange:e=>setCf(e.target.value),style:{padding:"8px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG}},React.createElement("option",{value:"all"},"全カテゴリ"),CATS.map(c=>React.createElement("option",{key:c},c)))
+      )
+    ),
+    React.createElement("div",{className:"g3"},fl.map(bk=>{
+      const av=!data.loans.some(l=>l.bookId===bk.id&&!l.returnDate);
+      const avg=avgRating(data.reviews,bk.id);
+      return React.createElement(Cd,{key:bk.id,hover:true,onClick:()=>sel(bk),style:{padding:14}},
+        React.createElement("div",{style:{display:"flex",gap:10}},
+          React.createElement(BC,{book:bk,size:80}),
+          React.createElement("div",{style:{flex:1,minWidth:0}},
+            React.createElement("div",{style:{fontSize:13,fontWeight:500,color:C.TX,marginBottom:2}},bk.title),
+            React.createElement("div",{style:{fontSize:11,color:C.SUB,marginBottom:4}},bk.author),
+            avg>0&&React.createElement("div",{style:{display:"flex",alignItems:"center",gap:4,marginBottom:4}},
+              React.createElement(Stars,{rating:Math.round(avg),size:12}),
+              React.createElement("span",{style:{fontSize:11,color:"#F59E0B",fontFamily:Fe,fontWeight:500}},avg.toFixed(1))
+            ),
+            React.createElement("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},
+              React.createElement(Tg,{color:C.BL},bk.category),
+              React.createElement(Tg,{color:av?C.G:C.MAG},av?"貸出可":"貸出中")
+            )
+          )
+        )
+      );
+    })),
+    fl.length===0&&React.createElement("div",{style:{textAlign:"center",padding:40,color:C.SUB}},"該当なし")
+  );
+}
+
+// ============================================================
+// DETAIL (with QR code)
+// ============================================================
+function Detail({b,data,upd,toast,back,addLog,userName}){
+  const al=data.loans.find(l=>l.bookId===b.id&&!l.returnDate);const av=!al;const mine=al&&al.userName===userName;
+  const[showQR,setShowQR]=useState(false);
+  const[revRating,setRevRating]=useState(0);const[revComment,setRevComment]=useState("");
+  const bookReviews=(data.reviews||[]).filter(r=>r.bookId===b.id);
+  const avg=avgRating(data.reviews,b.id);
+  const myReview=bookReviews.find(r=>r.userName===userName);
+
+  const borrow=()=>{const nl={id:gid(),bookId:b.id,bookTitle:b.title,userName,borrowDate:fmtD(new Date()),dueDate:fmtD(new Date(Date.now()+14*86400000)),returnDate:""};let d={...data,loans:[...data.loans,nl]};d=addLog(d,"貸出",b.title,"");upd(d);toast(`「${b.title}」を借りました`)};
+  const ret=()=>{let d={...data,loans:data.loans.map(l=>l.id===al.id?{...l,returnDate:fmtD(new Date())}:l)};d=addLog(d,"返却",b.title,"");upd(d);toast(`「${b.title}」を返却しました`)};
+  const submitReview=()=>{if(revRating===0){toast("星評価を選択してください","error");return}
+    const rv={id:gid(),bookId:b.id,bookTitle:b.title,userName,rating:revRating,comment:revComment.trim(),date:fmtD(new Date())};
+    let d;
+    if(myReview){d={...data,reviews:(data.reviews||[]).map(r=>r.id===myReview.id?{...rv,id:myReview.id}:r)};toast("レビューを更新しました")}
+    else{d={...data,reviews:[...(data.reviews||[]),rv]};toast("レビューを投稿しました")}
+    d=addLog(d,"レビュー",b.title,`${revRating}★`);upd(d);setRevRating(0);setRevComment("")};
+  const deleteReview=(rid)=>{let d={...data,reviews:(data.reviews||[]).filter(r=>r.id!==rid)};upd(d);toast("レビューを削除しました")};
+
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement("button",{onClick:back,style:{background:"none",border:"none",cursor:"pointer",fontSize:12,color:C.G,marginBottom:16}},"← 戻る"),
+    React.createElement("div",{className:"gd"},
+      React.createElement("div",null,
+        React.createElement("div",{style:{width:"100%",aspectRatio:"0.68",background:b.coverColor||C.MID,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:20,color:"#fff",overflow:"hidden"}},
+          b.thumbnail?React.createElement("img",{src:b.thumbnail,style:{width:"100%",height:"100%",objectFit:"cover"}}):React.createElement(React.Fragment,null,React.createElement("div",{style:{fontSize:16,fontWeight:500,textAlign:"center",lineHeight:1.4}},b.title),React.createElement("div",{style:{fontSize:12,opacity:0.7,marginTop:4}},b.author))
+        ),
+        React.createElement("div",{style:{marginTop:12}},
+          av?React.createElement(Bt,{v:"primary",size:"lg",onClick:borrow,style:{width:"100%"}},"この本を借りる"):mine?React.createElement(Bt,{v:"dark",size:"lg",onClick:ret,style:{width:"100%"}},"返却する"):React.createElement(Bt,{v:"secondary",size:"lg",disabled:true,style:{width:"100%"}},"貸出中")
+        ),
+        React.createElement("button",{onClick:()=>setShowQR(!showQR),style:{background:"none",border:`1px solid ${C.SOFT}`,padding:"8px",width:"100%",marginTop:8,cursor:"pointer",fontSize:11,color:C.SUB}},showQR?"QRを閉じる":"📱 QRコードを表示"),
+        showQR&&React.createElement("div",{style:{marginTop:8,textAlign:"center",padding:12,background:C.W,border:`1px solid ${C.SOFT}`}},
+          React.createElement(QRCode,{text:`PIPE-LIBRARY:BOOK:${b.id}:${b.title}`,size:140}),
+          React.createElement("div",{style:{fontSize:10,color:C.SUB,marginTop:6}},"図書ID: ",b.id)
+        )
+      ),
+      React.createElement("div",null,
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:3,marginBottom:4}},"BOOK DETAIL"),
+        React.createElement("h1",{style:{fontSize:22,color:C.TX,fontWeight:400,marginBottom:4}},b.title),
+        React.createElement("div",{style:{fontSize:13,color:C.SUB,marginBottom:8}},b.author),
+        // Average rating display
+        avg>0&&React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:12}},
+          React.createElement(Stars,{rating:Math.round(avg),size:18}),
+          React.createElement("span",{style:{fontSize:14,fontWeight:700,color:"#F59E0B",fontFamily:Fe}},avg.toFixed(1)),
+          React.createElement("span",{style:{fontSize:12,color:C.SUB}},`(${bookReviews.length}件のレビュー)`)
+        ),
+        b.isbn&&React.createElement("div",{style:{fontSize:11,color:C.SUB,marginBottom:8}},"ISBN: ",b.isbn),
+        React.createElement("div",{style:{display:"flex",gap:4,marginBottom:14,flexWrap:"wrap"}},
+          React.createElement(Tg,{color:C.BL},b.category),
+          (b.tags||[]).map(t=>React.createElement(Tg,{key:t,color:C.MID},t))
+        ),
+        React.createElement(Cd,{style:{marginBottom:12}},React.createElement("div",{style:{fontSize:13,lineHeight:1.7}},b.description)),
+        React.createElement("div",{className:"g3",style:{marginBottom:12}},
+          b.pages>0&&React.createElement("div",{style:{background:C.W,padding:12,textAlign:"center"}},React.createElement("div",{style:{fontSize:10,color:C.SUB}},"Pages"),React.createElement("div",{style:{fontSize:18,fontWeight:700,fontFamily:Fe}},b.pages)),
+          b.year>0&&React.createElement("div",{style:{background:C.W,padding:12,textAlign:"center"}},React.createElement("div",{style:{fontSize:10,color:C.SUB}},"Year"),React.createElement("div",{style:{fontSize:18,fontWeight:700,fontFamily:Fe}},b.year)),
+          React.createElement("div",{style:{background:C.W,padding:12,textAlign:"center"}},React.createElement("div",{style:{fontSize:10,color:C.SUB}},"Rating"),React.createElement("div",{style:{fontSize:18,fontWeight:700,color:"#F59E0B",fontFamily:Fe}},avg>0?avg.toFixed(1):"—"))
+        ),
+
+        // ===== REVIEW FORM =====
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginTop:20,marginBottom:10}},myReview?"UPDATE YOUR REVIEW":"WRITE A REVIEW"),
+        React.createElement(Cd,{style:{marginBottom:16,padding:16}},
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:12}},
+            React.createElement("span",{style:{fontSize:12,color:C.TX}},"あなたの評価:"),
+            React.createElement(Stars,{rating:revRating||(myReview?.rating||0),onRate:setRevRating,size:22}),
+            revRating>0&&React.createElement("span",{style:{fontSize:13,fontWeight:500,color:"#F59E0B",fontFamily:Fe}},revRating+".0")
+          ),
+          React.createElement("textarea",{value:revComment||(myReview&&!revComment&&revRating===0?myReview.comment:""),onChange:e=>setRevComment(e.target.value),placeholder:"この本の感想・おすすめポイントを書いてください...",style:{width:"100%",padding:"10px",border:`1px solid ${C.SOFT}`,fontSize:13,outline:"none",background:C.BG,minHeight:70,resize:"vertical",marginBottom:10,lineHeight:1.6}}),
+          React.createElement(Bt,{v:"primary",size:"sm",onClick:submitReview},myReview?"レビューを更新":"レビューを投稿")
+        ),
+
+        // ===== REVIEWS LIST =====
+        bookReviews.length>0&&React.createElement(React.Fragment,null,
+          React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.SUB,letterSpacing:2,marginBottom:8}},`REVIEWS (${bookReviews.length})`),
+          React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:1,background:C.SOFT}},
+            bookReviews.sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(rv=>
+              React.createElement(Cd,{key:rv.id,style:{padding:14}},
+                React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}},
+                  React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+                    React.createElement("div",{style:{width:28,height:28,background:C.BG,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:500,color:C.TX}},rv.userName.charAt(0)),
+                    React.createElement("div",null,
+                      React.createElement("div",{style:{fontSize:13,fontWeight:500,color:C.TX}},rv.userName),
+                      React.createElement("div",{style:{fontSize:10,color:C.SUB}},rv.date)
+                    )
+                  ),
+                  React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
+                    React.createElement(Stars,{rating:rv.rating,size:13}),
+                    rv.userName===userName&&React.createElement("button",{onClick:()=>deleteReview(rv.id),style:{background:"none",border:"none",cursor:"pointer",fontSize:10,color:C.MAG,marginLeft:4}},"削除")
+                  )
+                ),
+                rv.comment&&React.createElement("div",{style:{fontSize:13,color:C.TX,lineHeight:1.7,padding:"8px 0 0 36px"}},rv.comment)
+              )
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ============================================================
+// MY PAGE
+// ============================================================
+function MyPage({data,upd,toast,nav,addLog,userName}){
+  const my=data.loans.filter(l=>l.userName===userName&&!l.returnDate);
+  const hist=data.loans.filter(l=>l.userName===userName&&l.returnDate);
+  const ret=loan=>{const bk=data.books.find(b=>b.id===loan.bookId);let d={...data,loans:data.loans.map(l=>l.id===loan.id?{...l,returnDate:fmtD(new Date())}:l)};d=addLog(d,"返却",bk?.title,"");upd(d);toast(`「${bk?.title}」を返却しました`)};
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement(Tl,{sub:"貸出状況"},"MY PAGE"),
+    React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:2,marginBottom:10}},`CURRENT (${my.length})`),
+    my.length===0?React.createElement(Cd,{style:{textAlign:"center",padding:32}},
+      React.createElement("p",{style:{color:C.SUB,fontSize:13}},"借りている本はありません"),
+      React.createElement(Bt,{v:"primary",size:"sm",onClick:()=>nav("books"),style:{marginTop:12}},"図書を探す")
+    ):React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:1,background:C.SOFT,marginBottom:24}},
+      my.map(l=>{const bk=data.books.find(b=>b.id===l.bookId);if(!bk)return null;const d=du(l.dueDate);const od=d<0;const nd=d>=0&&d<=3;
+        return React.createElement(Cd,{key:l.id,style:{borderLeft:`3px solid ${od?C.MAG:nd?"#F59E0B":C.G}`,padding:12}},
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12}},
+            React.createElement(BC,{book:bk,size:56}),
+            React.createElement("div",{style:{flex:1,minWidth:0}},
+              React.createElement("div",{style:{fontSize:13,fontWeight:500}},bk.title),
+              React.createElement("div",{style:{fontSize:11,color:od?C.MAG:nd?"#D97706":C.SUB,marginTop:2,fontWeight:od||nd?500:400}},
+                `期限: ${l.dueDate}`,od?` (${Math.abs(d)}日超過！)`:nd?` (残り${d}日)`:""
+              ),
+              React.createElement("div",{style:{marginTop:6,height:3,background:C.SOFT}},React.createElement("div",{style:{height:"100%",width:`${Math.min(100,Math.max(0,(1-d/14)*100))}%`,background:od?C.MAG:nd?"#F59E0B":C.G}}))
+            ),
+            React.createElement(Bt,{v:"dark",size:"sm",onClick:()=>ret(l)},"返却")
+          )
+        );
+      })
+    ),
+    hist.length>0&&React.createElement(React.Fragment,null,
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:2,marginBottom:10,marginTop:24}},`HISTORY (${hist.length})`),
+      React.createElement(Cd,{style:{padding:0,overflowX:"auto"}},
+        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:400}},
+          React.createElement("thead",null,React.createElement("tr",{style:{background:C.BG}},["図書","貸出日","返却日"].map(h=>React.createElement("th",{key:h,style:{padding:"8px 10px",textAlign:"left",fontWeight:500,color:C.SUB,fontSize:10}},h)))),
+          React.createElement("tbody",null,hist.slice(0,20).map(l=>{const bk=data.books.find(b=>b.id===l.bookId);return React.createElement("tr",{key:l.id,style:{borderBottom:`1px dotted ${C.SOFT}`}},React.createElement("td",{style:{padding:"8px 10px",fontWeight:500}},bk?.title||"?"),React.createElement("td",{style:{padding:"8px 10px",color:C.SUB}},l.borrowDate),React.createElement("td",{style:{padding:"8px 10px",color:C.SUB}},l.returnDate))}))
+        )
+      )
+    )
+  );
+}
+
+// ============================================================
+// QUIZ
+// ============================================================
+function Quiz({data,upd,nav,addLog,userName}){
+  const[step,setStep]=useState(0);const[ans,setAns]=useState({});const[res,setRes]=useState([]);
+  const tagMap={0:{0:["マネジメント","リーダーシップ"],1:["自己啓発"],2:["起業","イノベーション"],3:["生産性","問題解決"]},1:{0:["テクノロジー"],1:["組織デザイン"],2:["マーケティング"],3:["データ活用"]},2:{0:["問題解決"],1:["視野拡大"],2:["論理思考"],3:["フレームワーク"]},3:{0:["コミュニケーション"],1:["論理思考"],2:["デザイン思考"],3:["リーダーシップ"]},4:{0:["リーダーシップ","戦略"],1:["問題解決"],2:["クリエイティブ"],3:["コミュニケーション"]},5:{0:["戦略"],1:["マネジメント"],2:["データ活用"],3:["生産性"]},6:{0:["戦略","経営"],1:["クリエイティブ"],2:["データ活用"],3:["マネジメント"]},7:{0:["経営"],1:["テクノロジー"],2:["視野拡大"],3:["デザイン思考"]},8:{0:["論理思考"],1:["マネジメント"],2:["起業"],3:["視野拡大"]},9:{0:["論理思考"],1:["経営"],2:["実践"],3:["自己啓発"]}};
+
+  const calc=(a)=>{
+    const ts={};Object.entries(a).forEach(([qi,ai])=>{(tagMap[qi]?.[ai]||[]).forEach(t=>{ts[t]=(ts[t]||0)+1})});
+    const sc=data.books.map(bk=>{let s=0;const r=[];(bk.tags||[]).forEach(t=>{if(ts[t]){s+=ts[t];r.push(t)}});return{book:bk,score:s,reasons:r}}).sort((a,b)=>b.score-a.score).slice(0,3);
+    setRes(sc);setStep(11);
+    let d=addLog(data,"診断完了","",sc.map(r=>r.book.title).join(", "));upd(d);
+  };
+  const doAns=(qi,oi)=>{const na={...ans,[qi]:oi};setAns(na);if(step<10)setStep(step+1);else calc(na)};
+
+  if(step===0)return React.createElement("div",{style:{animation:"slideUp 0.3s",maxWidth:520,margin:"0 auto",textAlign:"center",paddingTop:40}},
+    React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:3,marginBottom:6}},"RECOMMENDATION"),
+    React.createElement("h1",{style:{fontSize:22,color:C.TX,fontWeight:400,marginBottom:8}},"おすすめ図書診断"),
+    React.createElement("p",{style:{color:C.SUB,fontSize:13,marginBottom:24}},"10問の質問でおすすめをレコメンド"),
+    React.createElement(Bt,{v:"primary",size:"lg",onClick:()=>setStep(1)},"診断をはじめる")
+  );
+
+  if(step>=1&&step<=10){const q=QQ[step-1];return React.createElement("div",{style:{animation:"slideUp 0.2s",maxWidth:520,margin:"0 auto",paddingTop:16}},
+    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:20}},
+      React.createElement("span",{style:{fontSize:11,color:C.G,fontFamily:Fe}},`Q${step}/10`),
+      React.createElement("div",{style:{flex:1,height:3,background:C.SOFT}},React.createElement("div",{style:{height:"100%",background:C.G,width:`${step*10}%`,transition:"width 0.3s"}}))
+    ),
+    React.createElement("h2",{style:{fontSize:17,color:C.TX,fontWeight:400,marginBottom:16}},q.q),
+    React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:1,background:C.SOFT}},q.o.map((o,i)=>React.createElement("button",{key:i,onClick:()=>doAns(q.id-1,i),style:{background:C.W,border:"none",padding:"14px 16px",fontSize:13,textAlign:"left",cursor:"pointer",minHeight:48}},React.createElement("span",{style:{fontFamily:Fe,color:C.G,marginRight:8}},String.fromCharCode(65+i)+"."),o)))
+  );}
+
+  return React.createElement("div",{style:{animation:"slideUp 0.3s",maxWidth:640,margin:"0 auto",paddingTop:16}},
+    React.createElement("div",{style:{textAlign:"center",marginBottom:24}},
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:11,color:C.G,letterSpacing:3,marginBottom:4}},"YOUR RESULTS"),
+      React.createElement("h1",{style:{fontSize:20,color:C.TX,fontWeight:400}},"診断結果")
+    ),
+    React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.SUB,letterSpacing:2,marginBottom:8}},"RECOMMENDATION"),
+    React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:1,background:C.SOFT}},
+      res.map((r,i)=>React.createElement(Cd,{key:r.book.id,style:{borderLeft:`3px solid ${C.G}`,padding:16}},
+        React.createElement("div",{style:{display:"flex",gap:14,alignItems:"flex-start"}},
+          React.createElement("div",{style:{position:"relative"}},React.createElement(BC,{book:r.book,size:90}),React.createElement("div",{style:{position:"absolute",top:-4,right:-4,width:20,height:20,background:C.G,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,fontFamily:Fe}},i+1)),
+          React.createElement("div",{style:{flex:1,minWidth:0}},
+            React.createElement("div",{style:{fontSize:15,fontWeight:500,marginBottom:2}},r.book.title),
+            React.createElement("div",{style:{fontSize:12,color:C.SUB,marginBottom:6}},r.book.author),
+            React.createElement("div",{style:{background:C.BG,padding:8,fontSize:12,lineHeight:1.5}},
+              React.createElement("span",{style:{color:C.G,fontWeight:500}},"理由: "),r.reasons.join("、")||"総合マッチ"
+            )
+          )
+        )
+      ))
+    ),
+    React.createElement("div",{style:{display:"flex",gap:8,justifyContent:"center",marginTop:20,flexWrap:"wrap"}},
+      React.createElement(Bt,{v:"secondary",onClick:()=>{setStep(0);setAns({});setRes([])}},"もう一度"),
+      React.createElement(Bt,{v:"primary",onClick:()=>nav("books")},"図書一覧へ")
+    )
+  );
+}
+
+// ============================================================
+// REQUEST
+// ============================================================
+function Req({data,upd,toast,addLog,userName}){
+  const[t,setT]=useState("");const[a,setA]=useState("");const[r,setR]=useState("");
+  const sub=()=>{if(!t.trim()){toast("タイトルを入力","error");return}const rq={id:gid(),title:t.trim(),author:a.trim(),reason:r.trim(),requestedBy:userName,date:fmtD(new Date()),status:"pending"};let d={...data,requests:[...data.requests,rq]};d=addLog(d,"リクエスト",t.trim(),r.trim());upd(d);toast("リクエスト送信");setT("");setA("");setR("")};
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement(Tl,{sub:"読みたい本をリクエスト"},"BOOK REQUEST"),
+    React.createElement("div",{className:"g2",style:{background:C.SOFT}},
+      React.createElement(Cd,null,
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginBottom:12}},"NEW REQUEST"),
+        React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:C.SUB,display:"block",marginBottom:2}},"タイトル *"),React.createElement("input",{value:t,onChange:e=>setT(e.target.value),style:{width:"100%",padding:"8px",border:`1px solid ${C.SOFT}`,fontSize:13,outline:"none",background:C.BG}})),
+          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:C.SUB,display:"block",marginBottom:2}},"著者"),React.createElement("input",{value:a,onChange:e=>setA(e.target.value),style:{width:"100%",padding:"8px",border:`1px solid ${C.SOFT}`,fontSize:13,outline:"none",background:C.BG}})),
+          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:C.SUB,display:"block",marginBottom:2}},"理由"),React.createElement("textarea",{value:r,onChange:e=>setR(e.target.value),style:{width:"100%",padding:"8px",border:`1px solid ${C.SOFT}`,fontSize:13,outline:"none",background:C.BG,minHeight:60,resize:"vertical"}})),
+          React.createElement(Bt,{v:"primary",onClick:sub},"送信")
+        )
+      ),
+      React.createElement("div",{style:{background:C.W,padding:18}},
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginBottom:10}},"ALL REQUESTS"),
+        data.requests.length===0?React.createElement("p",{style:{color:C.SUB,fontSize:12,textAlign:"center",padding:16}},"なし"):
+        React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8}},data.requests.slice().reverse().slice(0,10).map(rq=>
+          React.createElement("div",{key:rq.id,style:{borderBottom:`1px dotted ${C.SOFT}`,paddingBottom:8}},
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+              React.createElement("div",{style:{fontSize:13,fontWeight:500}},rq.title),
+              React.createElement(Tg,{color:rq.status==="pending"?C.BL:rq.status==="approved"?C.G:C.MAG},rq.status==="pending"?"検討中":rq.status==="approved"?"承認":"却下")
+            ),
+            React.createElement("div",{style:{fontSize:11,color:C.SUB,marginTop:2}},`${rq.requestedBy} · ${rq.date}`)
+          )
+        ))
+      )
+    )
+  );
+}
+
+// ============================================================
+// ADMIN DASHBOARD (with Charts)
+// ============================================================
+function ADash({data}){
+  const aL=data.loans.filter(l=>!l.returnDate);const oL=aL.filter(l=>du(l.dueDate)<0);const pR=data.requests.filter(r=>r.status==="pending");
+
+  // Category data
+  const catCounts={};data.books.forEach(b=>{catCounts[b.category]=(catCounts[b.category]||0)+1});
+  const catLabels=Object.keys(catCounts);const catValues=Object.values(catCounts);
+  const catColors=catLabels.map((_,i)=>[C.G,C.BL,C.DK,C.MID,"#5B4E8B","#2D7D9A","#8B6914","#4A7C59","#7B4B6E","#3D6B5E"][i%10]);
+
+  // Monthly loan data
+  const monthly={};data.loans.forEach(l=>{const m=l.borrowDate?.slice(0,7);if(m){monthly[m]=monthly[m]||{b:0,r:0};monthly[m].b++}if(l.returnDate){const rm=l.returnDate.slice(0,7);monthly[rm]=monthly[rm]||{b:0,r:0};monthly[rm].r++}});
+  const mLabels=Object.keys(monthly).sort();const mBorrow=mLabels.map(m=>monthly[m].b);const mReturn=mLabels.map(m=>monthly[m].r);
+
+  // Popular books
+  const bbc={};data.loans.forEach(l=>{bbc[l.bookId]=(bbc[l.bookId]||0)+1});
+  const pop=Object.entries(bbc).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,c])=>({book:data.books.find(b=>b.id===id),count:c})).filter(p=>p.book);
+
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement(Tl,{sub:"図書管理ダッシュボード"},"ADMIN DASHBOARD"),
+    React.createElement("div",{className:"g5",style:{marginBottom:20}},
+      [{l:"蔵書",v:data.books.length},{l:"貸出中",v:aL.length},{l:"延滞",v:oL.length},{l:"総貸出",v:data.loans.length},{l:"リクエスト",v:pR.length}].map((s,i)=>
+        React.createElement("div",{key:i,style:{background:C.W,padding:12,textAlign:"center"}},
+          React.createElement("div",{style:{fontSize:22,fontWeight:700,color:i===2&&oL.length?C.MAG:C.G,fontFamily:Fe}},s.v),
+          React.createElement("div",{style:{fontSize:10,color:C.SUB}},s.l)
+        )
+      )
+    ),
+
+    React.createElement("div",{className:"g2",style:{background:"transparent",gap:20,display:"grid",gridTemplateColumns:"1fr 1fr"}},
+      // Category distribution chart
+      React.createElement(Cd,null,
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginBottom:12}},"CATEGORY DISTRIBUTION"),
+        catLabels.length>0?React.createElement(ChartCanvas,{type:"doughnut",height:220,data:{labels:catLabels,datasets:[{data:catValues,backgroundColor:catColors,borderWidth:0}]},options:{plugins:{legend:{position:"right",labels:{boxWidth:10,font:{size:10}}}}}}):React.createElement("p",{style:{color:C.SUB,textAlign:"center"}},"データなし")
+      ),
+
+      // Monthly trend chart
+      React.createElement(Cd,null,
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginBottom:12}},"MONTHLY TREND"),
+        mLabels.length>0?React.createElement(ChartCanvas,{type:"bar",height:220,data:{labels:mLabels,datasets:[{label:"貸出",data:mBorrow,backgroundColor:C.G},{label:"返却",data:mReturn,backgroundColor:C.BL}]},options:{scales:{y:{beginAtZero:true,ticks:{font:{size:10}}},x:{ticks:{font:{size:9}}}}}}):React.createElement("p",{style:{color:C.SUB,textAlign:"center"}},"データなし")
+      )
+    ),
+
+    // Popular books
+    React.createElement(Cd,{style:{marginTop:20}},
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginBottom:12}},"POPULAR BOOKS"),
+      pop.length===0?React.createElement("p",{style:{color:C.SUB,fontSize:12,textAlign:"center"}},"データなし"):
+      pop.map((p,i)=>React.createElement("div",{key:p.book.id,style:{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px dotted ${C.SOFT}`}},
+        React.createElement("span",{style:{fontFamily:Fe,fontWeight:700,fontSize:16,color:i===0?C.G:C.SUB,minWidth:20}},i+1),
+        React.createElement(BC,{book:p.book,size:36}),
+        React.createElement("div",{style:{flex:1}},React.createElement("div",{style:{fontSize:12,fontWeight:500}},p.book.title)),
+        React.createElement(Tg,{color:C.G},`${p.count}回`)
+      ))
+    )
+  );
+}
+
+// ============================================================
+// ADMIN BOOKS (with ISBN search)
+// ============================================================
+function ABooks({data,upd,toast,addLog,userName}){
+  const[ed,setEd]=useState(null);
+  const[fm,setFm]=useState({title:"",author:"",category:"ビジネス",description:"",tags:"",coverColor:C.DK,pages:"",year:"",isbn:"",thumbnail:""});
+  const[searchQ,setSearchQ]=useState("");const[searchRes,setSearchRes]=useState([]);const[searching,setSearching]=useState(false);
+
+  const doSearch=async()=>{if(!searchQ.trim())return;setSearching(true);const res=await searchGoogleBooks(searchQ);setSearchRes(res);setSearching(false)};
+  const fillFromSearch=(sr)=>{setFm({title:sr.title,author:sr.author,category:sr.category||"ビジネス",description:(sr.description||"").slice(0,200),tags:"",coverColor:C.DK,pages:sr.pages||"",year:sr.year||"",isbn:sr.isbn||"",thumbnail:sr.thumbnail||""});setSearchRes([]);setSearchQ("");setEd("new")};
+  const startAdd=()=>{setFm({title:"",author:"",category:"ビジネス",description:"",tags:"",coverColor:C.DK,pages:"",year:"",isbn:"",thumbnail:""});setEd("new")};
+
+  const save=()=>{if(!fm.title.trim()||!fm.author.trim()){toast("タイトルと著者は必須","error");return}const bd={title:fm.title.trim(),author:fm.author.trim(),category:fm.category,description:fm.description.trim(),tags:fm.tags.split(",").map(t=>t.trim()).filter(Boolean),coverColor:fm.coverColor,pages:parseInt(fm.pages)||0,year:parseInt(fm.year)||0,status:"有効",isbn:fm.isbn||"",thumbnail:fm.thumbnail||""};
+    if(ed==="new"){let d={...data,books:[...data.books,{id:gid(),...bd}]};d=addLog(d,"図書追加",bd.title,"");upd(d);toast(`追加: ${bd.title}`)}
+    else{let d={...data,books:data.books.map(b=>b.id===ed.id?{...b,...bd}:b)};d=addLog(d,"図書編集",bd.title,"");upd(d);toast(`更新: ${bd.title}`)}setEd(null)};
+  const del=b=>{if(!confirm(`「${b.title}」を削除？`))return;let d={...data,books:data.books.filter(x=>x.id!==b.id)};d=addLog(d,"図書削除",b.title,"");upd(d);toast(`削除: ${b.title}`)};
+
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement(Tl,{sub:"図書管理"},"BOOK MANAGEMENT"),
+
+    // ISBN Search
+    React.createElement(Cd,{style:{marginBottom:16,padding:14,borderLeft:`3px solid ${C.BL}`}},
+      React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.BL,letterSpacing:2,marginBottom:8}},"SEARCH BOOKS (Google Books API)"),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("input",{value:searchQ,onChange:e=>setSearchQ(e.target.value),onKeyDown:e=>e.key==="Enter"&&doSearch(),placeholder:"タイトル、著者、ISBN で検索...",style:{flex:1,padding:"8px 10px",border:`1px solid ${C.SOFT}`,fontSize:13,outline:"none",background:C.BG}}),
+        React.createElement(Bt,{v:"secondary",size:"sm",onClick:doSearch,disabled:searching},searching?"検索中...":"🔍 検索")
+      ),
+      searchRes.length>0&&React.createElement("div",{style:{marginTop:10,display:"flex",flexDirection:"column",gap:1,background:C.SOFT}},
+        searchRes.map((sr,i)=>React.createElement("div",{key:i,onClick:()=>fillFromSearch(sr),style:{background:C.W,padding:10,cursor:"pointer",display:"flex",gap:8,alignItems:"center"}},
+          sr.thumbnail?React.createElement("img",{src:sr.thumbnail,style:{width:32,height:46,objectFit:"cover"}}):React.createElement("div",{style:{width:32,height:46,background:C.SOFT}}),
+          React.createElement("div",{style:{flex:1}},
+            React.createElement("div",{style:{fontSize:12,fontWeight:500}},sr.title),
+            React.createElement("div",{style:{fontSize:10,color:C.SUB}},sr.author),
+            sr.isbn&&React.createElement("div",{style:{fontSize:9,color:C.SUB}},"ISBN: ",sr.isbn)
+          ),
+          React.createElement("span",{style:{fontSize:10,color:C.G}},"+ 追加")
+        ))
+      )
+    ),
+
+    React.createElement("div",{style:{display:"flex",justifyContent:"flex-end",marginBottom:14}},
+      React.createElement(Bt,{v:"primary",size:"sm",onClick:startAdd},"+ 手動で追加")
+    ),
+
+    ed&&React.createElement(Cd,{style:{marginBottom:14,borderLeft:`3px solid ${C.G}`,padding:16}},
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
+        React.createElement("div",null,React.createElement("label",{style:{fontSize:10,color:C.SUB}},"タイトル *"),React.createElement("input",{value:fm.title,onChange:e=>setFm({...fm,title:e.target.value}),style:{width:"100%",padding:"6px 8px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG}})),
+        React.createElement("div",null,React.createElement("label",{style:{fontSize:10,color:C.SUB}},"著者 *"),React.createElement("input",{value:fm.author,onChange:e=>setFm({...fm,author:e.target.value}),style:{width:"100%",padding:"6px 8px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG}})),
+        React.createElement("div",null,React.createElement("label",{style:{fontSize:10,color:C.SUB}},"カテゴリ"),React.createElement("select",{value:fm.category,onChange:e=>setFm({...fm,category:e.target.value}),style:{width:"100%",padding:"6px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG}},CATS.map(c=>React.createElement("option",{key:c},c)))),
+        React.createElement("div",null,React.createElement("label",{style:{fontSize:10,color:C.SUB}},"タグ (カンマ区切り)"),React.createElement("input",{value:fm.tags,onChange:e=>setFm({...fm,tags:e.target.value}),style:{width:"100%",padding:"6px 8px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG}})),
+        React.createElement("div",null,React.createElement("label",{style:{fontSize:10,color:C.SUB}},"ISBN"),React.createElement("input",{value:fm.isbn,onChange:e=>setFm({...fm,isbn:e.target.value}),style:{width:"100%",padding:"6px 8px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG}})),
+        React.createElement("div",null,React.createElement("label",{style:{fontSize:10,color:C.SUB}},"サムネイルURL"),React.createElement("input",{value:fm.thumbnail,onChange:e=>setFm({...fm,thumbnail:e.target.value}),style:{width:"100%",padding:"6px 8px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG}})),
+        React.createElement("div",{style:{gridColumn:"1/-1"}},React.createElement("label",{style:{fontSize:10,color:C.SUB}},"説明"),React.createElement("textarea",{value:fm.description,onChange:e=>setFm({...fm,description:e.target.value}),style:{width:"100%",padding:"6px 8px",border:`1px solid ${C.SOFT}`,fontSize:12,background:C.BG,minHeight:40,resize:"vertical"}}))
+      ),
+      React.createElement("div",{style:{display:"flex",gap:6,marginTop:12,justifyContent:"flex-end"}},
+        React.createElement(Bt,{v:"secondary",size:"sm",onClick:()=>setEd(null)},"取消"),
+        React.createElement(Bt,{v:"primary",size:"sm",onClick:save},ed==="new"?"追加":"保存")
+      )
+    ),
+
+    // Book table
+    React.createElement("div",{style:{overflowX:"auto"}},
+      React.createElement(Cd,{style:{padding:0,minWidth:500}},
+        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:12}},
+          React.createElement("thead",null,React.createElement("tr",{style:{background:C.BG}},["図書","カテゴリ","状態","操作"].map(h=>React.createElement("th",{key:h,style:{padding:"8px 10px",textAlign:"left",fontWeight:500,color:C.SUB,fontSize:10}},h)))),
+          React.createElement("tbody",null,data.books.map(bk=>{const av=!data.loans.some(l=>l.bookId===bk.id&&!l.returnDate);return React.createElement("tr",{key:bk.id,style:{borderBottom:`1px dotted ${C.SOFT}`}},
+            React.createElement("td",{style:{padding:"8px 10px"}},React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},React.createElement(BC,{book:bk,size:32}),React.createElement("div",null,React.createElement("div",{style:{fontWeight:500,fontSize:12}},bk.title),React.createElement("div",{style:{fontSize:10,color:C.SUB}},bk.author)))),
+            React.createElement("td",{style:{padding:"8px 10px"}},React.createElement(Tg,{color:C.BL},bk.category)),
+            React.createElement("td",null,React.createElement(Tg,{color:av?C.G:C.MAG},av?"可":"貸出中")),
+            React.createElement("td",{style:{padding:"8px 10px"}},React.createElement("div",{style:{display:"flex",gap:4}},
+              React.createElement(Bt,{v:"secondary",size:"sm",onClick:()=>{setFm({title:bk.title,author:bk.author,category:bk.category,description:bk.description||"",tags:(bk.tags||[]).join(", "),coverColor:bk.coverColor||C.DK,pages:bk.pages||"",year:bk.year||"",isbn:bk.isbn||"",thumbnail:bk.thumbnail||""});setEd(bk)}},"編集"),
+              React.createElement(Bt,{v:"danger",size:"sm",onClick:()=>del(bk)},"削除")
+            ))
+          )}))
+        )
+      )
+    )
+  );
+}
+
+// ============================================================
+// ADMIN REQUESTS
+// ============================================================
+function AReqs({data,upd,toast,addLog}){
+  const act=(rq,st)=>{let d={...data,requests:data.requests.map(r=>r.id===rq.id?{...r,status:st}:r)};d=addLog(d,st==="approved"?"承認":"却下",rq.title,"");upd(d);toast(`${rq.title}: ${st==="approved"?"承認":"却下"}`)};
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement(Tl,{sub:"リクエスト管理"},"REQUESTS"),
+    data.requests.length===0?React.createElement(Cd,{style:{textAlign:"center",padding:36,color:C.SUB}},"なし"):
+    React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:1,background:C.SOFT}},data.requests.slice().reverse().map(rq=>
+      React.createElement(Cd,{key:rq.id,style:{borderLeft:`3px solid ${rq.status==="pending"?C.BL:rq.status==="approved"?C.G:C.MAG}`,padding:14}},
+        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}},
+          React.createElement("div",{style:{flex:1,minWidth:150}},
+            React.createElement("div",{style:{fontSize:14,fontWeight:500}},rq.title),
+            rq.reason&&React.createElement("div",{style:{fontSize:12,color:C.SUB,marginTop:4,background:C.BG,padding:6}},rq.reason),
+            React.createElement("div",{style:{fontSize:11,color:C.SOFT,marginTop:4}},`${rq.requestedBy} · ${rq.date}`)
+          ),
+          React.createElement("div",{style:{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}},
+            React.createElement(Tg,{color:rq.status==="pending"?C.BL:rq.status==="approved"?C.G:C.MAG},rq.status==="pending"?"検討中":rq.status==="approved"?"承認":"却下"),
+            rq.status==="pending"&&React.createElement(React.Fragment,null,
+              React.createElement(Bt,{v:"primary",size:"sm",onClick:()=>act(rq,"approved")},"承認"),
+              React.createElement(Bt,{v:"danger",size:"sm",onClick:()=>act(rq,"rejected")},"却下")
+            )
+          )
+        )
+      )
+    ))
+  );
+}
+
+// ============================================================
+// ADMIN DATA
+// ============================================================
+function AData({data,handleDL}){
+  const[tab,setTab]=useState("log");const aLog=data.activityLog||[];const allL=data.loans||[];
+  return React.createElement("div",{style:{animation:"slideUp 0.3s"}},
+    React.createElement(Tl,{sub:"蓄積データ管理"},"DATA"),
+    React.createElement("div",{style:{display:"flex",gap:1,background:C.SOFT,marginBottom:16,flexWrap:"wrap"}},
+      [{k:"log",l:`ログ(${aLog.length})`},{k:"loans",l:`貸出(${allL.length})`},{k:"export",l:"エクスポート"}].map(t=>
+        React.createElement("button",{key:t.k,onClick:()=>setTab(t.k),style:{flex:1,minWidth:80,background:tab===t.k?C.DK:C.W,color:tab===t.k?"#fff":C.TX,border:"none",padding:"10px 8px",cursor:"pointer",fontSize:11,fontWeight:500}},t.l)
+      )
+    ),
+    tab==="log"&&(aLog.length===0?React.createElement(Cd,{style:{textAlign:"center",padding:36,color:C.SUB}},"ログなし"):
+      React.createElement("div",{style:{overflowX:"auto"}},React.createElement(Cd,{style:{padding:0,minWidth:400}},
+        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:11}},
+          React.createElement("thead",null,React.createElement("tr",{style:{background:C.BG}},["日時","アクション","図書","利用者"].map(h=>React.createElement("th",{key:h,style:{padding:"6px 8px",textAlign:"left",fontWeight:500,color:C.SUB,fontSize:10}},h)))),
+          React.createElement("tbody",null,aLog.slice(0,80).map(e=>React.createElement("tr",{key:e.id,style:{borderBottom:`1px dotted ${C.SOFT}`}},
+            React.createElement("td",{style:{padding:"6px 8px",color:C.SUB,fontSize:10,fontFamily:Fe,whiteSpace:"nowrap"}},fmtDT(e.timestamp)),
+            React.createElement("td",{style:{padding:"6px 8px"}},React.createElement(Tg,{color:C.G},e.action)),
+            React.createElement("td",{style:{padding:"6px 8px",fontWeight:500}},e.bookTitle),
+            React.createElement("td",{style:{padding:"6px 8px",color:C.SUB}},e.userName)
+          )))
+        )
+      ))
+    ),
+    tab==="loans"&&(allL.length===0?React.createElement(Cd,{style:{textAlign:"center",padding:36,color:C.SUB}},"データなし"):
+      React.createElement("div",{style:{overflowX:"auto"}},React.createElement(Cd,{style:{padding:0,minWidth:500}},
+        React.createElement("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:11}},
+          React.createElement("thead",null,React.createElement("tr",{style:{background:C.BG}},["図書","利用者","貸出","返却予定","返却","状態"].map(h=>React.createElement("th",{key:h,style:{padding:"6px 8px",textAlign:"left",fontWeight:500,color:C.SUB,fontSize:10}},h)))),
+          React.createElement("tbody",null,allL.slice().reverse().map(l=>{const od=!l.returnDate&&du(l.dueDate)<0;return React.createElement("tr",{key:l.id,style:{borderBottom:`1px dotted ${C.SOFT}`,background:od?"#FFF5F5":"transparent"}},
+            React.createElement("td",{style:{padding:"6px 8px",fontWeight:500}},l.bookTitle||data.books.find(b=>b.id===l.bookId)?.title||"?"),
+            React.createElement("td",{style:{padding:"6px 8px"}},l.userName),
+            React.createElement("td",{style:{padding:"6px 8px"}},l.borrowDate),
+            React.createElement("td",{style:{padding:"6px 8px"}},l.dueDate),
+            React.createElement("td",{style:{padding:"6px 8px"}},l.returnDate||"—"),
+            React.createElement("td",null,React.createElement(Tg,{color:od?C.MAG:l.returnDate?C.G:C.BL},od?"延滞":l.returnDate?"返却済":"貸出中"))
+          )}))
+        )
+      ))
+    ),
+    tab==="export"&&React.createElement("div",{className:"g2",style:{background:C.SOFT}},
+      React.createElement(Cd,null,
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.G,letterSpacing:2,marginBottom:10}},"DOWNLOAD"),
+        React.createElement("p",{style:{fontSize:12,color:C.SUB,lineHeight:1.5,marginBottom:14}},"最新データをExcelとしてダウンロード"),
+        React.createElement("div",{style:{background:C.BG,padding:10,marginBottom:14,fontSize:11}},
+          `蔵書${data.books.length} / 貸出${data.loans.length} / ログ${(data.activityLog||[]).length} / リクエスト${data.requests.length}`
+        ),
+        React.createElement(Bt,{v:"primary",onClick:handleDL,style:{width:"100%"}},"Excelをダウンロード")
+      ),
+      React.createElement(Cd,{style:{borderLeft:`3px solid ${C.MAG}`}},
+        React.createElement("div",{style:{fontFamily:Fe,fontSize:10,color:C.MAG,letterSpacing:2,marginBottom:10}},"RESET"),
+        React.createElement("p",{style:{fontSize:12,color:C.SUB,lineHeight:1.5,marginBottom:14}},"キャッシュをクリアして初期化"),
+        React.createElement(Bt,{v:"danger",onClick:()=>{if(!confirm("リセットしますか？"))return;localStorage.removeItem("pl-cache");localStorage.removeItem("pl-user");location.reload()},style:{width:"100%"}},"リセット")
+      )
+    )
+  );
+}
+
+ReactDOM.render(React.createElement(App),document.getElementById('root'));
+</script>
+</body>
+</html>
